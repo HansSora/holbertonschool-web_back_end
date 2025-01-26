@@ -1,33 +1,48 @@
 const fs = require('fs');
 
-function countStudents(path) {
+function countStudents(filepath) {
   try {
-    const data = fs.readFileSync(path, 'utf8');
-    const lines = data.trim().split('\n');
-    lines.shift();
+    const csv = fs.readFileSync(filepath, { encoding: 'utf8' });
+    const headerArray = csv.split(/\r?\n|\n/);
+    const headers = headerArray[0].split(',');
 
-    console.log(`Number of students: ${lines.length}`);
-
-    const fieldObject = {};
-    for (const line of lines) {
-      const fields = line.split(',');
-      const field = fields[fields.length - 1];
-
-      if (fieldObject[field]) {
-        fieldObject[field] += 1;
-      } else {
-        fieldObject[field] = 1;
+    // strip headers and convert to list of dicts
+    const dictList = [];
+    const noHeaderArray = headerArray.slice(1);
+    for (let i = 0; i < noHeaderArray.length; i += 1) {
+      const data = noHeaderArray[i].split(',');
+      if (data.length === headers.length) {
+        const row = {};
+        for (let j = 0; j < headers.length; j += 1) {
+          row[headers[j].trim()] = data[j].trim();
+        }
+        dictList.push(row);
       }
     }
 
-    for (const [field, count] of Object.entries(fieldObject)) {
-      const st = lines
-        .filter((line) => line.endsWith(field))
-        .map((line) => line.split(',')[0])
-        .join(', ');
-      console.log(`Number of students in ${field}: ${count}. List: ${st}`);
-    }
-  } catch (error) {
+    // count and collect first names of students per field
+    let countCS = 0;
+    let countSWE = 0;
+    const studentsCS = [];
+    const studentsSWE = [];
+
+    dictList.forEach((element) => {
+      if (element.field === 'CS') {
+        countCS += 1;
+        studentsCS.push(element.firstname);
+      } else if (element.field === 'SWE') {
+        countSWE += 1;
+        studentsSWE.push(element.firstname);
+      }
+    });
+
+    const countStudents = countCS + countSWE;
+
+    // print statements
+    console.log(`Number of students: ${countStudents}`);
+    console.log(`Number of students in CS: ${countCS}. List: ${studentsCS.toString().split(',').join(', ')}`);
+    console.log(`Number of students in SWE: ${countSWE}. List: ${studentsSWE.toString().split(',').join(', ')}`);
+  } catch (err) {
     throw new Error('Cannot load the database');
   }
 }
